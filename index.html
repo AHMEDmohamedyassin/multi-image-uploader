@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="./cdn.js"></script>
+    <script defer src="./tailwind.js"></script>
+    <title>alpine js</title>
+</head>
+<body class="p-20">
+    <div class="select-none" 
+        x-data="{
+            event : 'the_event' , 
+            max_size : 1024 , 
+            max_images : 5 ,
+            mime : 'image/png , image/jpg , image/jpeg' ,
+            files : [],
+            alert : '' , 
+            changeOrder (id , increment) {
+                if(id == 0 && !increment) return 
+
+                file = this.files[id]
+                this.files.splice(id , 1)
+
+                if(increment)
+                    this.files.splice(id + 1 , 0 , file )
+
+                if(!increment && id) this.files.splice(id - 1 , 0 , file )
+            },
+            removeItem(id){
+                this.files.splice(id , 1)
+            },
+            overSizeMsg(){
+                this.alert = ' لم يتم قبول الصور ذات حجم أكبر من ' + this.max_size + ' كيلوبايت '
+            },
+            overCountMsg(){
+                this.alert = this.alert +  ' العدد المسموح به من الصور هو ' + this.max_images + ' صور '
+            },
+            filesHandle(data){
+                this.files = [
+                    ...this.files , 
+                    ...[...data].filter(e=> {
+                        size_allowed = e.size <= this.max_size * 1024
+                        if(!size_allowed)
+                            this.overSizeMsg()
+                        return size_allowed 
+                    })
+                ]
+
+                if(this.files.length > this.max_images)
+                    this.overCountMsg()
+
+
+                this.files = this.files.slice(0,this.max_images)
+            }
+        }"
+    >
+        <input x-bind:accept="mime" class="hidden" x-ref="the_file_input_filed" @change="filesHandle($event.target.files)" type="file" multiple>
+
+        <div x-on:click="$el == $event.target && files.length < max_images ? $refs.the_file_input_filed.click() : null" class="relative grid grid-cols-6 items-center gap-4 bg-gray-100 w-full min-h-32 rounded-xl p-4 shadow-lg border-[1px] border-gray-500/50 cursor-pointer">
+            <div x-show="files.length" x-text="'تم تحديد ' + files.length + ' صور'" class="col-span-full text-gray-500"></div>
+            <template x-for="(file , index) in files">
+                <div x-bind:title="file.name" class="flex flex-col gap-2 shadow py-2 px-4 rounded-lg hover:shadow-xl bg-gray-50">
+                    <div class="w-full">
+                        <img 
+                            x-bind:src="URL.createObjectURL(file)" 
+                            x-bind:alt="file.name"
+                            class="w-full aspect-square object-contain object-center"
+                        >
+                    </div>
+
+                    <div class="flex items-center justify-between w-full">
+                        <!-- <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"> -->
+                        <svg x-show="index != 0" x-on:click="changeOrder(index)" class="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"/>
+                        </svg>
+                        <svg x-on:click="removeItem(index)" class="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6"/>
+                        </svg>                          
+                        <svg x-show="files.length > 1 && index + 1 < files.length" x-on:click="changeOrder(index , true)" class="w-6 h-6 text-gray-800 cursor-pointer hover:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"/>
+                        </svg>                        
+                    </div>
+                </div>
+
+            </template>
+
+            <div x-show="files.length < max_images" x-on:click="files.length < max_images ? $refs.the_file_input_filed.click() : null" class="w-full h-full flex items-center justify-center  shadow py-2 px-4 rounded-lg hover:shadow-xl bg-gray-50">
+                <svg class="w-2/4 h-2/4 text-gray-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7 7V5"/>
+                </svg>                                      
+            </div>
+
+            <div x-show="!files.length" class="absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4">اضغط لرفع الصور</div>
+            
+            <div class="col-span-full text-center text-red-500" x-transition x-show="alert" x-text="alert"></div>
+        
+        </div>
+
+        <div class="hidden" x-init="$watch('files', value => $dispatch(event , {files})) "></div>
+        <div class="hidden" x-init="$watch('alert', value => console.log(value)) "></div>
+        <div class="hidden" x-init="$watch('alert', value => value ? setTimeout(() => alert = '' , 3000) : null )  "></div>
+    </div>
+
+    <script>
+        document.addEventListener('the_event' , data => {
+            console.log(data.detail.files)
+        })
+    </script>
+</body>
+</html>
